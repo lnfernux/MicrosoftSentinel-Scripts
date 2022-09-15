@@ -20,13 +20,12 @@ function Parse-MicrosoftSentinelAnalyticRules {
             $Name = $Name.Replace(":", "")    
             $File = "$Name.json"
 
-            Write-Host "Parsing rule: $($Name) and saving to $($Name).json"
-
             # If suffix is defined, match for that
             if($suffix) {
                 # Check if both prefix/suffix are defined
                 if($prefix) {
                     if($Name.StartsWith($prefix) -and $Name.EndsWith($suffix)) {
+                        Write-Host "Parsing rule: $($Name) and saving to $($Name).json"
                         $DownloadedRule.PSObject.Properties.Remove("id")
                         $DownloadedRule.PSObject.Properties.Remove("etag")
                         $DownloadedRule.properties.PSObject.Properties.Remove("lastModifiedUtc")
@@ -35,6 +34,7 @@ function Parse-MicrosoftSentinelAnalyticRules {
                 }
                 # Only suffix specified
                 if($Name.EndsWith($suffix)) {
+                    Write-Host "Parsing rule: $($Name) and saving to $($Name).json"
                     $DownloadedRule.PSObject.Properties.Remove("id")
                     $DownloadedRule.PSObject.Properties.Remove("etag")
                     $DownloadedRule.properties.PSObject.Properties.Remove("lastModifiedUtc")
@@ -43,6 +43,7 @@ function Parse-MicrosoftSentinelAnalyticRules {
             # Or, if prefix is defined
             } elseif($prefix) {
                 if($Name.StartsWith($prefix)) {
+                    Write-Host "Parsing rule: $($Name) and saving to $($Name).json"
                     $DownloadedRule.PSObject.Properties.Remove("id")
                     $DownloadedRule.PSObject.Properties.Remove("etag")
                     $DownloadedRule.properties.PSObject.Properties.Remove("lastModifiedUtc")
@@ -51,6 +52,7 @@ function Parse-MicrosoftSentinelAnalyticRules {
             # No prefix/suffix, save everything
             } else {
                 if($Name) {
+                    Write-Host "Parsing rule: $($Name) and saving to $($Name).json"
                     $DownloadedRule.PSObject.Properties.Remove("id")
                     $DownloadedRule.PSObject.Properties.Remove("etag")
                     $DownloadedRule.properties.PSObject.Properties.Remove("lastModifiedUtc")
@@ -59,7 +61,7 @@ function Parse-MicrosoftSentinelAnalyticRules {
              }
         } 
     } catch {
-      Write-Host "An error occured in the MicrosoftSentinelAnalyticRules-function: $($_)"
+        Write-Host "An error occured in the MicrosoftSentinelAnalyticRules-function: $($_)"
     }
 }
 function Get-MicrosoftSentinelAnalyticRules {
