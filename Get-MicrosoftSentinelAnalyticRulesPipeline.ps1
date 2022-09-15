@@ -16,6 +16,7 @@ function Parse-MicrosoftSentinelAnalyticRules {
             $Name = $Name.Replace(":", "")    
             $File = "$Name.json"
             if($Name) {
+                Write-Host "Parsing rule: $($Name) and saving to $($Name).json"
                 $DownloadedRule.PSObject.Properties.Remove("id")
                 $DownloadedRule.PSObject.Properties.Remove("etag")
                 $DownloadedRule.properties.PSObject.Properties.Remove("lastModifiedUtc")
@@ -23,7 +24,7 @@ function Parse-MicrosoftSentinelAnalyticRules {
             }
         } 
     } catch {
-        Write-Host "An error occured in the MicrosoftSentinelAnalyticRules-function: $($_)"
+      Write-Host "An error occured in the MicrosoftSentinelAnalyticRules-function: $($_)"
     }
 }
 function Get-MicrosoftSentinelAnalyticRules {
