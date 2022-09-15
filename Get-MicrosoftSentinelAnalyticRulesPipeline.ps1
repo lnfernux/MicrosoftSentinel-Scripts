@@ -15,15 +15,58 @@ function Parse-MicrosoftSentinelAnalyticRules {
             $Name = $Name.Replace(" ", "")
             $Name = $Name.Replace(":", "")    
             $File = "$Name.json"
+<<<<<<< HEAD
             if($Name) {
                 $DownloadedRule.PSObject.Properties.Remove("id")
                 $DownloadedRule.PSObject.Properties.Remove("etag")
                 $DownloadedRule.properties.PSObject.Properties.Remove("lastModifiedUtc")
                 $DownloadedRule | ConvertTo-Json -Depth 15 | Out-File $outputPath/$File
             }
+=======
+
+            # If suffix is defined, match for that
+            if($suffix) {
+                # Check if both prefix/suffix are defined
+                if($prefix) {
+                    if($Name.StartsWith($prefix) -and $Name.EndsWith($suffix)) {
+                        Write-Host "Parsing rule: $($Name) and saving to $($Name).json"
+                        $DownloadedRule.PSObject.Properties.Remove("id")
+                        $DownloadedRule.PSObject.Properties.Remove("etag")
+                        $DownloadedRule.properties.PSObject.Properties.Remove("lastModifiedUtc")
+                        $DownloadedRule | ConvertTo-Json -Depth 15 | Out-File $outputPath/$File
+                    }
+                }
+                # Only suffix specified
+                if($Name.EndsWith($suffix)) {
+                    Write-Host "Parsing rule: $($Name) and saving to $($Name).json"
+                    $DownloadedRule.PSObject.Properties.Remove("id")
+                    $DownloadedRule.PSObject.Properties.Remove("etag")
+                    $DownloadedRule.properties.PSObject.Properties.Remove("lastModifiedUtc")
+                    $DownloadedRule | ConvertTo-Json -Depth 15 | Out-File $outputPath/$File
+                }
+            # Or, if prefix is defined
+            } elseif($prefix) {
+                if($Name.StartsWith($prefix)) {
+                    Write-Host "Parsing rule: $($Name) and saving to $($Name).json"
+                    $DownloadedRule.PSObject.Properties.Remove("id")
+                    $DownloadedRule.PSObject.Properties.Remove("etag")
+                    $DownloadedRule.properties.PSObject.Properties.Remove("lastModifiedUtc")
+                    $DownloadedRule | ConvertTo-Json -Depth 15 | Out-File $outputPath/$File
+                }
+            # No prefix/suffix, save everything
+            } else {
+                if($Name) {
+                    Write-Host "Parsing rule: $($Name) and saving to $($Name).json"
+                    $DownloadedRule.PSObject.Properties.Remove("id")
+                    $DownloadedRule.PSObject.Properties.Remove("etag")
+                    $DownloadedRule.properties.PSObject.Properties.Remove("lastModifiedUtc")
+                    $DownloadedRule | ConvertTo-Json -Depth 15 | Out-File $outputPath/$File
+                }
+             }
+>>>>>>> 198125366554776a8b0d85312522c205fb99305c
         } 
     } catch {
-      Write-Host "An error occured in the MicrosoftSentinelAnalyticRules-function: $($_)"
+        Write-Host "An error occured in the MicrosoftSentinelAnalyticRules-function: $($_)"
     }
 }
 function Get-MicrosoftSentinelAnalyticRules {
