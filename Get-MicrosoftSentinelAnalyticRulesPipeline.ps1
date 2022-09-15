@@ -19,6 +19,9 @@ function Parse-MicrosoftSentinelAnalyticRules {
             $Name = $Name.Replace(" ", "")
             $Name = $Name.Replace(":", "")    
             $File = "$Name.json"
+
+            Write-Host "Parsing rule: $($Name) and saving to $($Name).json"
+
             # If suffix is defined, match for that
             if($suffix) {
                 # Check if both prefix/suffix are defined
@@ -91,8 +94,12 @@ try {
     # All pipeline variables are stored in env: 
     $resourceGroup = $env:RG
     $subscriptionId = $env:SUBID
-    $workstpaceName = $env:WSN
-    Get-MicrosoftSentinelAnalyticRules -outputPath $outputPath -resourceGroup $resourceGroup -subscriptionId $subscriptionId -workspaceName $workstpaceName
+    $workspaceName = $env:WSN
+    Write-Host "resourceGroup: $($resourceGroup)"
+    Write-Host "subscriptionId: $($subscriptionId)"
+    Write-Host "workspaceName: $($workspaceName)"
+
+    Get-MicrosoftSentinelAnalyticRules -outputPath $outputPath -resourceGroup $resourceGroup -subscriptionId $subscriptionId -workspaceName $workspaceName
     Write-Host "##vso[task.complete result=Succeeded;]DONE"
 } catch {
     Write-Host "##vso[task.LogIssue type=error;]$_"
