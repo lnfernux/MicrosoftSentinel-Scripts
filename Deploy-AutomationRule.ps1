@@ -8,4 +8,4 @@ $params = @{
     playbookResourceId = "/subscriptions/subscriptionid/resourceGroups/infernux-security/providers/Microsoft.Logic/workflows/infernux-test1"
     tenantId = "tenantId"
 }
-New-AzResourceGroupDeployment -ResourceGroupName $resourceGroup -TemplateFile .\MicrosoftSentinel-Templates\AutomationRules\PermissionsTest.json -TemplateParameterObject $param
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroup -TemplateFile .\MicrosoftSentinel-Templates\AutomationRules\PermissionsTest.json -TemplateParameterObject $params
