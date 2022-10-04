@@ -8,7 +8,7 @@ function Get-EventIdFromAnalyticRules {
     $DownloadedRules = (Invoke-AzRestMethod -Path $uri).Content | ConvertFrom-Json -Depth 15
     $eventIds = @()
     foreach($rule in $DownloadedRules.Value) {
-        $eventIdRules = $rule.properties.query | select-string -pattern "EentID\s==\s[0-9]+" -AllMatches | ForEach-Object {$_.Matches.Value}
+        $eventIdRules = $rule.properties.query | select-string -pattern "EventID\s==\s[0-9]+" -AllMatches | ForEach-Object {$_.Matches.Value}
         $eventIdRules = $eventIdRules -replace " ",""
         foreach($eventId in $eventIdRules) {
             $eventIds += ($eventId.Split(" ")).Split("==")[1]
@@ -27,6 +27,7 @@ function New-XMLQuery {
     <Select Path="Security">*[System[(EventID=$eventId)]]</Select>
 </Query>
 "@
+    return $query
 }
 
 function New-XMLFile {
@@ -46,6 +47,7 @@ function New-XMLFile {
     $queryArray
 </QueryList>
 "@
+    return $queryFile
 }
 $eventIdList = Get-EventIdFromAnalyticRules -subscriptionId subscriptionId -resourceGroup demo-rg -workspaceName demo-law
 $xmlFile = New-XMLFile -eventIdList $eventIdList
