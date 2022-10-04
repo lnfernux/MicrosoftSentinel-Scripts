@@ -8,7 +8,7 @@ function Get-EventIdFromAnalyticRules {
     $DownloadedRules = (Invoke-AzRestMethod -Path $uri).Content | ConvertFrom-Json -Depth 15
     $eventIds = @()
     foreach($rule in $DownloadedRules.Value) {
-        $eventIdRules = $rule.properties.query | select-string -patten "EentID\s==\s[0-9]+" -AllMatches | For-EachObject {$_.Matches.Value}
+        $eventIdRules = $rule.properties.query | select-string -patten "EentID\s==\s[0-9]+" -AllMatches | ForEach-Object {$_.Matches.Value}
         $eventIdRules = $eventIdRules -replace " ",""
         foreach($eventId in $eventIdRules) {
             $eventIds += ($eventId.Split(" ")).Split("==")[1]
