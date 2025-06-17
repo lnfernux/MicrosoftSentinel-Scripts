@@ -28,7 +28,7 @@ function New-DetectionRule {
     [string]$severity,
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet("Malware","Execution", "Discovery", "Lateral Movement", "Persistence", "PrivilegeEscalation", "DefenseEvasion", "CredentialAccess", "Collection", "Exfiltration", "CommandAndControl", "SuspiciousActivity", "Unwanted Software", "Ransomware", "Exploit")]
+    [ValidateSet("Malware","Execution", "Discovery", "Lateral Movement", "Persistence", "PrivilegeEscalation", "DefenseEvasion", "CredentialAccess", "Collection", "Exfiltration", "CommandAndControl", "SuspiciousActivity", "Unwanted Software", "Ransomware", "Exploit", "Impact")]
     [string]$category,
 
     [Parameter(Mandatory = $true)]
