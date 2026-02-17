@@ -1,6 +1,45 @@
 $script:GraphBaseUrl = "https://graph.microsoft.com/beta/security/rules/detectionRules"
 
 function Get-GraphAccessToken {
+    [CmdletBinding(DefaultParameterSetName = 'AzContext')]
+    param (
+        [Parameter(Mandatory = $true, ParameterSetName = 'SPN')]
+        [ValidateNotNullOrEmpty()]
+        [string]$ClientId,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'SPN')]
+        [ValidateNotNullOrEmpty()]
+        [string]$ClientSecret,
+
+        [Parameter(Mandatory = $true, ParameterSetName = 'SPN')]
+        [ValidateNotNullOrEmpty()]
+        [string]$TenantId
+    )
+
+    if ($PSCmdlet.ParameterSetName -eq 'SPN') {
+        Write-Host "[A] Getting Microsoft Graph API token for SPN in tenant: $TenantId"
+        try {
+            $body = @{
+                grant_type    = "client_credentials"
+                client_id     = $ClientId
+                client_secret = $ClientSecret
+                scope         = "https://graph.microsoft.com/.default"
+            }
+            $tokenResponse = Invoke-RestMethod -Method POST `
+                -Uri "https://login.microsoftonline.com/$TenantId/oauth2/v2.0/token" `
+                -ContentType "application/x-www-form-urlencoded" `
+                -Body $body
+            $token = $tokenResponse.access_token
+            Write-Host "[*] Access token obtained successfully (SPN)"
+            return $token
+        }
+        catch {
+            Write-Host "[!] Failed to get SPN access token: $_" -ForegroundColor Red
+            throw $_
+        }
+    }
+
+    # Default: AzContext (managed identity / interactive)
     if (-not (Get-AzContext)) {
         Write-Host "[A] Connecting to Azure..."
         $null = Connect-AzAccount -Identity
