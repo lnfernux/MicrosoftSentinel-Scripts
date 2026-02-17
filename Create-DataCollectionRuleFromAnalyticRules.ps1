@@ -8,13 +8,21 @@ function Get-EventIdFromAnalyticRules {
     $DownloadedRules = (Invoke-AzRestMethod -Path $uri).Content | ConvertFrom-Json -Depth 15
     $eventIds = @()
     foreach($rule in $DownloadedRules.Value) {
-        $eventIdRules = $rule.properties.query | select-string -pattern "EventID\s==\s[0-9]+" -AllMatches | ForEach-Object {$_.Matches.Value}
-        $eventIdRules = $eventIdRules -replace " ",""
-        foreach($eventId in $eventIdRules) {
-            $eventIds += ($eventId.Split(" ")).Split("==")[1]
+        $query = $rule.properties.query
+        # Pattern 1: EventID == 4625
+        $eqMatches = $query | Select-String -Pattern "EventID\s*==\s*[0-9]+" -AllMatches | ForEach-Object {$_.Matches.Value}
+        foreach($match in $eqMatches) {
+            $id = ($match -replace "\s","").Split("==")[1]
+            $eventIds += $id
+        }
+        # Pattern 2: EventID in ("4728", "4732", "4756")  or  EventID in (4728, 4732)
+        $inMatches = $query | Select-String -Pattern 'EventID\s+in\s*\([^)]+\)' -AllMatches | ForEach-Object {$_.Matches.Value}
+        foreach($match in $inMatches) {
+            $ids = [regex]::Matches($match, '[0-9]+') | ForEach-Object {$_.Value}
+            $eventIds += $ids
         }
     }
-    $uniqueEventIds = $eventIds | Sort-Object | Get-Unique
+    $uniqueEventIds = $eventIds | Sort-Object -Unique
     return $uniqueEventIds
 }
 function New-XMLQuery {
@@ -23,9 +31,9 @@ function New-XMLQuery {
         $queryId
     )
     $query = @"
-<Query Id="$queryId" Path="Security">
-    <Select Path="Security">*[System[(EventID=$eventId)]]</Select>
-</Query>
+    <Query Id="$queryId" Path="Security">
+        <Select Path="Security">*[System[(EventID=$eventId)]]</Select>
+    </Query>
 "@
     return $query
 }
@@ -41,10 +49,11 @@ function New-XMLFile {
         $queryArray += $query
         $queryId++
     }
+    $queriesString = $queryArray -join "`n"
     $queryFile = @"
 <?xml version="1.0" encoding="utf-16"?>
 <QueryList>
-    $queryArray
+$queriesString
 </QueryList>
 "@
     return $queryFile
