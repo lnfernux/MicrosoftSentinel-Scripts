@@ -1,0 +1,67 @@
+{
+  "@odata.context": "https://graph.microsoft.com/beta/$metadata#security/rules/detectionRules/$entity",
+  "detectorId": "00000000-0000-0000-0000-000000000000",
+  "id": "204",
+  "displayName": "CDR-Test-DeviceActions",
+  "isEnabled": false,
+  "createdBy": "user@contoso.com",
+  "createdDateTime": "2026-02-18T18:21:13.3648447Z",
+  "lastModifiedDateTime": "2026-02-18T18:21:13.3648447Z",
+  "lastModifiedBy": "user@contoso.com",
+  "queryCondition": {
+    "queryText": "DeviceProcessEvents | where FileName == 'cmd.exe' | take 10",
+    "lastModifiedDateTime": null
+  },
+  "schedule": {
+    "period": "24H",
+    "nextRunDateTime": "2026-02-18T18:21:13.3648447Z"
+  },
+  "lastRunDetails": {
+    "lastRunDateTime": null,
+    "status": null,
+    "failureReason": null,
+    "errorCode": null
+  },
+  "detectionAction": {
+    "organizationalScope": null,
+    "alertTemplate": {
+      "title": "Device Response Actions Test",
+      "description": "Tests all 5 device response actions",
+      "severity": "high",
+      "category": "Execution",
+      "recommendedActions": null,
+      "mitreTechniques": [
+        "T1059"
+      ],
+      "impactedAssets": [
+        {
+          "@odata.type": "#microsoft.graph.security.impactedDeviceAsset",
+          "identifier": "deviceId"
+        }
+      ]
+    },
+    "responseActions": [
+      {
+        "@odata.type": "#microsoft.graph.security.isolateDeviceResponseAction",
+        "isolationType": "full",
+        "identifier": "deviceId"
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.collectInvestigationPackageResponseAction",
+        "identifier": "deviceId"
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.runAntivirusScanResponseAction",
+        "identifier": "deviceId"
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.initiateInvestigationResponseAction",
+        "identifier": "deviceId"
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.restrictAppExecutionResponseAction",
+        "identifier": "deviceId"
+      }
+    ]
+  }
+}

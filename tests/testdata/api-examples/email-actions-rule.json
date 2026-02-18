@@ -1,0 +1,66 @@
+{
+  "@odata.context": "https://graph.microsoft.com/beta/$metadata#security/rules/detectionRules/$entity",
+  "detectorId": "00000000-0000-0000-0000-000000000000",
+  "id": "206",
+  "displayName": "CDR-Test-EmailActions",
+  "isEnabled": false,
+  "createdBy": "user@contoso.com",
+  "createdDateTime": "2026-02-18T18:21:32.1194713Z",
+  "lastModifiedDateTime": "2026-02-18T18:21:32.1194713Z",
+  "lastModifiedBy": "user@contoso.com",
+  "queryCondition": {
+    "queryText": "EmailEvents | take 1",
+    "lastModifiedDateTime": null
+  },
+  "schedule": {
+    "period": "3H",
+    "nextRunDateTime": "2026-02-18T18:21:32.1194713Z"
+  },
+  "lastRunDetails": {
+    "lastRunDateTime": null,
+    "status": null,
+    "failureReason": null,
+    "errorCode": null
+  },
+  "detectionAction": {
+    "organizationalScope": null,
+    "alertTemplate": {
+      "title": "Email Response Actions Test",
+      "description": "Tests all 5 email response actions",
+      "severity": "high",
+      "category": "InitialAccess",
+      "recommendedActions": null,
+      "mitreTechniques": [
+        "T1566"
+      ],
+      "impactedAssets": [
+        {
+          "@odata.type": "#microsoft.graph.security.impactedMailboxAsset",
+          "identifier": "recipientEmailAddress"
+        }
+      ]
+    },
+    "responseActions": [
+      {
+        "@odata.type": "#microsoft.graph.security.hardDeleteResponseAction",
+        "identifier": "networkMessageId,recipientEmailAddress"
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.hardDeleteResponseAction",
+        "identifier": "networkMessageId,recipientEmailAddress"
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.hardDeleteResponseAction",
+        "identifier": "networkMessageId,recipientEmailAddress"
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.hardDeleteResponseAction",
+        "identifier": "networkMessageId,recipientEmailAddress"
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.hardDeleteResponseAction",
+        "identifier": "networkMessageId,recipientEmailAddress"
+      }
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "@odata.context": "https://graph.microsoft.com/beta/$metadata#security/rules/detectionRules/$entity",
+  "detectorId": "00000000-0000-0000-0000-000000000000",
+  "id": "205",
+  "displayName": "CDR-Test-UserActions",
+  "isEnabled": false,
+  "createdBy": "user@contoso.com",
+  "createdDateTime": "2026-02-18T18:21:22.1302842Z",
+  "lastModifiedDateTime": "2026-02-18T18:21:22.1302842Z",
+  "lastModifiedBy": "user@contoso.com",
+  "queryCondition": {
+    "queryText": "IdentityLogonEvents | take 1",
+    "lastModifiedDateTime": null
+  },
+  "schedule": {
+    "period": "12H",
+    "nextRunDateTime": "2026-02-18T18:21:22.1302842Z"
+  },
+  "lastRunDetails": {
+    "lastRunDateTime": null,
+    "status": null,
+    "failureReason": null,
+    "errorCode": null
+  },
+  "detectionAction": {
+    "organizationalScope": null,
+    "alertTemplate": {
+      "title": "User Response Actions Test",
+      "description": "Tests all 3 user response actions",
+      "severity": "medium",
+      "category": "CredentialAccess",
+      "recommendedActions": null,
+      "mitreTechniques": [
+        "T1110"
+      ],
+      "impactedAssets": [
+        {
+          "@odata.type": "#microsoft.graph.security.impactedUserAsset",
+          "identifier": "accountObjectId"
+        }
+      ]
+    },
+    "responseActions": [
+      {
+        "@odata.type": "#microsoft.graph.security.markUserAsCompromisedResponseAction",
+        "identifier": "accountObjectId"
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.disableUserResponseAction",
+        "identifier": "accountSid"
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.forceUserPasswordResetResponseAction",
+        "identifier": "accountSid"
+      }
+    ]
+  }
+}

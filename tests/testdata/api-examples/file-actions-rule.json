@@ -1,0 +1,64 @@
+{
+  "@odata.context": "https://graph.microsoft.com/beta/$metadata#security/rules/detectionRules/$entity",
+  "detectorId": "00000000-0000-0000-0000-000000000000",
+  "id": "207",
+  "displayName": "CDR-Test-FileActions",
+  "isEnabled": false,
+  "createdBy": "user@contoso.com",
+  "createdDateTime": "2026-02-18T18:21:40.8182097Z",
+  "lastModifiedDateTime": "2026-02-18T18:21:40.8182097Z",
+  "lastModifiedBy": "user@contoso.com",
+  "queryCondition": {
+    "queryText": "DeviceFileEvents | take 1",
+    "lastModifiedDateTime": null
+  },
+  "schedule": {
+    "period": "3H",
+    "nextRunDateTime": "2026-02-18T18:21:40.8182097Z"
+  },
+  "lastRunDetails": {
+    "lastRunDateTime": null,
+    "status": null,
+    "failureReason": null,
+    "errorCode": null
+  },
+  "detectionAction": {
+    "organizationalScope": null,
+    "alertTemplate": {
+      "title": "File Response Actions Test",
+      "description": "Tests all 3 file response actions",
+      "severity": "medium",
+      "category": "Execution",
+      "recommendedActions": null,
+      "mitreTechniques": [
+        "T1059"
+      ],
+      "impactedAssets": [
+        {
+          "@odata.type": "#microsoft.graph.security.impactedDeviceAsset",
+          "identifier": "deviceId"
+        }
+      ]
+    },
+    "responseActions": [
+      {
+        "@odata.type": "#microsoft.graph.security.stopAndQuarantineFileResponseAction",
+        "identifier": "deviceId,sha1"
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.allowFileResponseAction",
+        "identifier": "sha256",
+        "deviceGroupNames": [
+          "All"
+        ]
+      },
+      {
+        "@odata.type": "#microsoft.graph.security.blockFileResponseAction",
+        "identifier": "sha256",
+        "deviceGroupNames": [
+          "All"
+        ]
+      }
+    ]
+  }
+}

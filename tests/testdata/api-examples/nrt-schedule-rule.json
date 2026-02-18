@@ -1,0 +1,45 @@
+{
+  "@odata.context": "https://graph.microsoft.com/beta/$metadata#security/rules/detectionRules/$entity",
+  "detectorId": "00000000-0000-0000-0000-000000000000",
+  "id": "208",
+  "displayName": "CDR-Test-NRT",
+  "isEnabled": false,
+  "createdBy": "user@contoso.com",
+  "createdDateTime": "2026-02-18T18:22:01.6975401Z",
+  "lastModifiedDateTime": "2026-02-18T18:22:01.6975401Z",
+  "lastModifiedBy": "user@contoso.com",
+  "queryCondition": {
+    "queryText": "DeviceEvents | take 1",
+    "lastModifiedDateTime": null
+  },
+  "schedule": {
+    "period": "0",
+    "nextRunDateTime": "2026-02-18T18:22:01.6975401Z"
+  },
+  "lastRunDetails": {
+    "lastRunDateTime": null,
+    "status": null,
+    "failureReason": null,
+    "errorCode": null
+  },
+  "detectionAction": {
+    "organizationalScope": null,
+    "alertTemplate": {
+      "title": "NRT Schedule Test",
+      "description": "Tests near real-time schedule",
+      "severity": "low",
+      "category": "Discovery",
+      "recommendedActions": null,
+      "mitreTechniques": [
+        "T1018"
+      ],
+      "impactedAssets": [
+        {
+          "@odata.type": "#microsoft.graph.security.impactedDeviceAsset",
+          "identifier": "deviceId"
+        }
+      ]
+    },
+    "responseActions": []
+  }
+}
