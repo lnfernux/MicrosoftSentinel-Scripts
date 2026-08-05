@@ -1,101 +1,81 @@
 function New-DetectionRule {
-  param (
-    [Parameter(Mandatory = $true)]
-    [ValidateNotNullOrEmpty()]
-    [string]$displayName,
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$id,
 
-    [Parameter(Mandatory = $true)]
-    [bool]$isEnabled,
+        [Parameter(Mandatory = $true)]
+        [string]$displayName,
 
-    [Parameter(Mandatory = $true)]
-    [ValidateNotNullOrEmpty()]
-    [string]$queryText,
+        [Parameter(Mandatory = $true)]
+        [string]$description,
 
-    [Parameter(Mandatory = $true)]
-    [ValidateSet("0","1H", "3H", "12H", "24H")]
-    [string]$period,
+        [Parameter(Mandatory = $true)]
+        [string]$queryText,
 
-    [Parameter(Mandatory = $true)]
-    [ValidateNotNullOrEmpty()]
-    [string]$alertTitle,
+        [ValidatePattern('^P')]
+        [string]$frequency = 'PT1H',
 
-    [Parameter(Mandatory = $true)]
-    [ValidateNotNullOrEmpty()]
-    [string]$alertDescription,
+        [ValidateSet('informational', 'low', 'medium', 'high')]
+        [string]$severity = 'informational',
 
-    [Parameter(Mandatory = $true)]
-    [ValidateSet("informational", "low", "medium", "high")]
-    [string]$severity,
+        [string]$deviceIdColumn = 'DeviceId',
 
-    [Parameter(Mandatory = $true)]
-    [ValidateSet("Malware","Execution", "Discovery", "Lateral Movement", "Persistence", "PrivilegeEscalation", "DefenseEvasion", "CredentialAccess", "Collection", "Exfiltration", "CommandAndControl", "SuspiciousActivity", "Unwanted Software", "Ransomware", "Exploit", "Impact")]
-    [string]$category,
+        [string]$deviceNameColumn = 'DeviceName',
 
-    [Parameter(Mandatory = $true)]
-    [ValidateNotNullOrEmpty()]
-    [string]$identifier,
+        [string]$tactic = 'Execution',
 
-    [string[]]$mitreTechniques = @(),
+        [string[]]$techniques = @(),
 
-    $recommendedActions = $null,
+        [hashtable]$customDetails,
 
-    [ValidateSet("full", "selective")]
-    [string]$isolationType,
+        [string]$token
+    )
 
-    [Parameter(Mandatory = $false)]
-    [string]$token
-  )
-
-  $body = @{
-    displayName = $displayName
-    isEnabled = $isEnabled
-    queryCondition = @{
-      queryText = $queryText
+    $techniqueMappings = @($techniques | ForEach-Object { @{ technique = $_ } })
+    $body = @{
+        '@odata.type' = '#microsoft.graph.security.detectionRule'
+        id = $id
+        displayName = $displayName
+        description = $description
+        status = 'disabled'
+        queryCondition = @{ queryText = $queryText }
+        schedule = @{ frequency = $frequency }
+        detectionAction = @{
+            alertTemplate = @{
+                title = $displayName
+                description = $description
+                severity = $severity
+                entityMappings = @{
+                    hosts = @(
+                        @{
+                            deviceIdColumn = $deviceIdColumn
+                            nameColumn = $deviceNameColumn
+                        }
+                    )
+                }
+                tactics = @(
+                    @{
+                        tactic = $tactic
+                        techniques = $techniqueMappings
+                    }
+                )
+            }
+        }
     }
-    schedule = @{
-      period = $period
+    if ($customDetails) {
+        $body.detectionAction.alertTemplate.customDetails = $customDetails
     }
-    detectionAction = @{
-      alertTemplate = @{
-        title = $alertTitle
-        description = $alertDescription
-        severity = $severity.ToLower()
-        category = $category
-        recommendedActions = $recommendedActions
-        mitreTechniques = $mitreTechniques
-        impactedAssets = @(
-          @{
-            '@odata.type' = '#microsoft.graph.security.impactedDeviceAsset'
-            identifier    = $identifier
-          }
-        )
-      }
-      organizationalScope = $null
-      responseActions = @(
-      )
+
+    $request = @{
+        Method = 'POST'
+        Uri = 'https://graph.microsoft.com/beta/security/rules/detectionRules'
+        Body = $body | ConvertTo-Json -Depth 10
+        Headers = @{ 'Content-Type' = 'application/json' }
+        ErrorAction = 'Stop'
     }
-  }
-  if($isolationType) {
-    $body.detectionAction.responseActions += @{
-      '@odata.type' = '#microsoft.graph.security.isolateDeviceResponseAction'
-      identifier    = $identifier
-      isolationType = $isolationType
+    if ($token) {
+        $request.Headers.Authorization = "Bearer $token"
+        return Invoke-RestMethod @request
     }
-  }
-  $jsonBody = $body | ConvertTo-Json -Depth 10
-  if($token) {
-    Write-Host "Using provided access token for authentication."
-    $Headers = @{
-      "Authorization" = "Bearer $token"
-      "Content-Type" = "application/json"
-    }
-      $return = Invoke-RestMethod -Method POST -Uri "https://graph.microsoft.com/beta/security/rules/detectionRules" -Body $jsonBody -Headers $Headers
-  } else {
-    $Headers = @{"Content-Type" = "application/json"}
-    $return = Invoke-MgGraphRequest -Method POST -Uri "https://graph.microsoft.com/beta/security/rules/detectionRules" -Body $jsonBody -Headers $Headers
-  }
-  if(!$return) {Write-Host "Failed to create detection rule or an error occurred."
-    return $jsonBody
-  }
-  return $return
+    return Invoke-MgGraphRequest @request
 }
