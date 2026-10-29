@@ -52,6 +52,29 @@ Assert-True ($createBody.detectionAction.alertTemplate.tactics[0].techniques[0].
 Assert-True ($createBody.detectionAction.alertTemplate.customDetails.CommandLine -eq 'ProcessCommandLine') 'Create must send customDetails.'
 Assert-True ($createBody.detectionAction.automatedActions.isolateDevices[0].deviceIdColumn -eq 'DeviceId') 'Create must send grouped automatedActions.'
 Assert-True ($global:CapturedDetectionRuleRequest.Body -notmatch '"(isEnabled|period|responseActions|category|mitreTechniques|impactedAssets)"') 'Create must not send deprecated properties.'
+Assert-True ($global:CapturedDetectionRuleRequest.Body -notmatch '"(lookback|eventGroupingKind|incidentConfiguration)"') 'Create must leave optional settings to the API defaults.'
+
+$null = New-DetectionRule -id 'grouped-signin' -displayName 'Grouped sign-in' -status disabled `
+    -queryText 'SigninLogs | take 1' -frequency PT1H -lookback P2D -eventGroupingKind singleAlert `
+    -isExcludedFromIncidentCorrelation $true -alertTitle 'Grouped sign-in' -alertDescription 'Grouped sign-in.' `
+    -severity low -entityMappings @{ accounts = @(@{ aadUserIdColumn = 'UserId' }) }
+$groupedBody = $global:CapturedDetectionRuleRequest.Body | ConvertFrom-Json
+Assert-True ($groupedBody.schedule.lookback -eq 'P2D') 'Create must send lookback.'
+Assert-True ($groupedBody.detectionAction.alertTemplate.eventGroupingKind -eq 'singleAlert') 'Create must send eventGroupingKind.'
+Assert-True ($groupedBody.detectionAction.incidentConfiguration.isExcludedFromIncidentCorrelation -eq $true) 'Create must send incidentConfiguration.'
+
+$letterIdRejected = $false
+try {
+    $null = New-DetectionRule -id '1-rule' -displayName 'Bad id' -status disabled -queryText 'DeviceInfo | take 1' `
+        -frequency PT1H -alertTitle 'Bad id' -alertDescription 'Bad id.' -severity low -entityMappings @{}
+}
+catch {
+    $letterIdRejected = $_.Exception.Message -match "parameter 'id'"
+}
+Assert-True $letterIdRejected 'Create must reject an id that does not start with a letter.'
+
+$tacticsAccepted = Test-Tactics -Tactics @(@{ tactic = 'Execution' }, @{ tactic = 'Persistence'; techniques = @(@{ technique = 'T1053' }) })
+Assert-True $tacticsAccepted 'Tactics must accept several entries and an entry without techniques.'
 
 $null = Update-DetectionRule -ruleId 'encoded-powershell' -status disabled -frequency PT3H `
     -automatedActions @{ runAntivirusScans = @(@{ deviceIdColumn = 'DeviceId' }) }
@@ -61,6 +84,12 @@ Assert-True ($updateBody.status -eq 'disabled') 'Update must send status.'
 Assert-True ($updateBody.schedule.frequency -eq 'PT3H') 'Update must send frequency.'
 Assert-True ($updateBody.detectionAction.automatedActions.runAntivirusScans[0].deviceIdColumn -eq 'DeviceId') 'Update must send partial automatedActions.'
 Assert-True (-not $updateBody.queryCondition) 'Update must omit properties that were not supplied.'
+
+$null = Update-DetectionRule -ruleId 'grouped-signin' -lookback P1D -eventGroupingKind alertPerEvent -isExcludedFromIncidentCorrelation $false
+$groupedUpdateBody = $global:CapturedDetectionRuleRequest.Body | ConvertFrom-Json
+Assert-True ($groupedUpdateBody.schedule.lookback -eq 'P1D') 'Update must send lookback.'
+Assert-True ($groupedUpdateBody.detectionAction.alertTemplate.eventGroupingKind -eq 'alertPerEvent') 'Update must send eventGroupingKind.'
+Assert-True ($groupedUpdateBody.detectionAction.incidentConfiguration.isExcludedFromIncidentCorrelation -eq $false) 'Update must send incidentConfiguration.'
 
 $deprecatedInputRejected = $false
 try {
@@ -98,6 +127,21 @@ Assert-True (-not $standaloneUpdateBody.queryCondition) 'Standalone update must 
 $null = Get-DetectionRule -ruleId 'standalone-rule'
 Assert-True ($global:CapturedDetectionRuleRequest.Method -eq 'GET') 'Standalone get must use GET.'
 Assert-True ($global:CapturedDetectionRuleRequest.Uri -match '/standalone-rule$') 'Standalone get must address the requested rule.'
+
+function global:Invoke-MgGraphRequest {
+    [CmdletBinding()]
+    [OutputType([hashtable])]
+    param ($Method, $Uri)
+    if ($Method -ne 'GET') {
+        throw "The list test expects GET, not $Method."
+    }
+    if ($Uri -match 'skiptoken') {
+        return @{ value = @(@{ id = 'rule-b' }) }
+    }
+    return @{ value = @(@{ id = 'rule-a' }); '@odata.nextLink' = "$Uri`?`$skiptoken=1" }
+}
+$listedRules = Get-DetectionRules
+Assert-True (@($listedRules).Count -eq 2) 'List must follow @odata.nextLink.'
 
 Remove-Item Function:\Invoke-MgGraphRequest -ErrorAction SilentlyContinue
 Remove-Variable CapturedDetectionRuleRequest -Scope Global -ErrorAction SilentlyContinue
