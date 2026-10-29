@@ -106,14 +106,19 @@ function Get-DetectionRules {
         [Parameter(Mandatory = $false)][string]$token,
         [Parameter(Mandatory = $false)][string]$OutputPath
     )
+    $rules = [System.Collections.Generic.List[object]]::new()
+    $uri = $script:GraphBaseUrl
     try {
-        $result = Invoke-DetectionRuleRequest -Method GET -Uri $script:GraphBaseUrl -token $token
+        do {
+            $result = Invoke-DetectionRuleRequest -Method GET -Uri $uri -token $token
+            if ($null -ne $result.value) { $rules.AddRange([object[]]@($result.value)) }
+            $uri = $result.'@odata.nextLink'
+        } while ($uri)
     }
     catch {
         Write-Host "ERROR: Failed to get custom detection rules: $_" -ForegroundColor Red
         throw
     }
-    $rules = if ($result.value) { $result.value } else { $result }
     if ($OutputPath) {
         if (-not (Test-Path $OutputPath)) {
             $null = New-Item -ItemType Directory -Path $OutputPath -Force
@@ -185,6 +190,7 @@ function Test-Tactics {
         if (-not $tactic.tactic) {
             throw "Each tactics entry must contain a non-empty 'tactic' property."
         }
+        if ($null -eq $tactic.techniques) { continue }
         foreach ($technique in @($tactic.techniques)) {
             if (-not $technique.technique) {
                 throw "Each technique in tactic '$($tactic.tactic)' must contain a non-empty 'technique' property."
@@ -251,7 +257,7 @@ function New-DetectionRule {
         [Parameter(Mandatory = $true, ParameterSetName = 'InputFile')]
         [ValidateScript({ Test-Path $_ -PathType Leaf })][string]$InputFile,
         [Parameter(Mandatory = $true, ParameterSetName = 'Parameters')]
-        [ValidateNotNullOrEmpty()][string]$id,
+        [ValidatePattern('^[A-Za-z]')][string]$id,
         [Parameter(Mandatory = $true, ParameterSetName = 'Parameters')]
         [ValidateNotNullOrEmpty()][string]$displayName,
         [Parameter(Mandatory = $false, ParameterSetName = 'Parameters')][string]$description,
@@ -261,6 +267,11 @@ function New-DetectionRule {
         [ValidateNotNullOrEmpty()][string]$queryText,
         [Parameter(Mandatory = $true, ParameterSetName = 'Parameters')]
         [ValidatePattern('^P(?=\d|T\d)(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$')][string]$frequency,
+        [Parameter(Mandatory = $false, ParameterSetName = 'Parameters')]
+        [ValidatePattern('^P(?=\d|T\d)(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$')][string]$lookback,
+        [Parameter(Mandatory = $false, ParameterSetName = 'Parameters')]
+        [ValidateSet('alertPerEvent', 'singleAlert')][string]$eventGroupingKind,
+        [Parameter(Mandatory = $false, ParameterSetName = 'Parameters')][bool]$isExcludedFromIncidentCorrelation,
         [Parameter(Mandatory = $true, ParameterSetName = 'Parameters')]
         [ValidateNotNullOrEmpty()][string]$alertTitle,
         [Parameter(Mandatory = $true, ParameterSetName = 'Parameters')]
@@ -292,16 +303,22 @@ function New-DetectionRule {
         if ($PSBoundParameters.ContainsKey('recommendedActions')) { $alertTemplate.recommendedActions = $recommendedActions }
         if ($PSBoundParameters.ContainsKey('tactics')) { $alertTemplate.tactics = @($tactics) }
         if ($PSBoundParameters.ContainsKey('customDetails')) { $alertTemplate.customDetails = $customDetails }
+        if ($PSBoundParameters.ContainsKey('eventGroupingKind')) { $alertTemplate.eventGroupingKind = $eventGroupingKind }
 
         $detectionAction = @{ alertTemplate = $alertTemplate }
         if ($PSBoundParameters.ContainsKey('automatedActions')) { $detectionAction.automatedActions = $automatedActions }
         if ($PSBoundParameters.ContainsKey('deviceGroups')) {
             $detectionAction.organizationalScope = @{ deviceGroups = @($deviceGroups) }
         }
+        if ($PSBoundParameters.ContainsKey('isExcludedFromIncidentCorrelation')) {
+            $detectionAction.incidentConfiguration = @{ isExcludedFromIncidentCorrelation = $isExcludedFromIncidentCorrelation }
+        }
+        $schedule = @{ frequency = $frequency }
+        if ($PSBoundParameters.ContainsKey('lookback')) { $schedule.lookback = $lookback }
         $body = @{
             '@odata.type' = '#microsoft.graph.security.detectionRule'; id = $id
             displayName = $displayName; status = $status
-            queryCondition = @{ queryText = $queryText }; schedule = @{ frequency = $frequency }
+            queryCondition = @{ queryText = $queryText }; schedule = $schedule
             detectionAction = $detectionAction
         }
         if ($PSBoundParameters.ContainsKey('description')) { $body.description = $description }
@@ -335,6 +352,11 @@ function Update-DetectionRule {
         [Parameter(Mandatory = $false, ParameterSetName = 'Parameters')]
         [ValidatePattern('^P(?=\d|T\d)(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$')][string]$frequency,
         [Parameter(Mandatory = $false, ParameterSetName = 'Parameters')]
+        [ValidatePattern('^P(?=\d|T\d)(?:\d+D)?(?:T(?:\d+H)?(?:\d+M)?(?:\d+(?:\.\d+)?S)?)?$')][string]$lookback,
+        [Parameter(Mandatory = $false, ParameterSetName = 'Parameters')]
+        [ValidateSet('alertPerEvent', 'singleAlert')][string]$eventGroupingKind,
+        [Parameter(Mandatory = $false, ParameterSetName = 'Parameters')][bool]$isExcludedFromIncidentCorrelation,
+        [Parameter(Mandatory = $false, ParameterSetName = 'Parameters')]
         [ValidateNotNullOrEmpty()][string]$alertTitle,
         [Parameter(Mandatory = $false, ParameterSetName = 'Parameters')]
         [ValidateNotNullOrEmpty()][string]$alertDescription,
@@ -363,13 +385,17 @@ function Update-DetectionRule {
             if ($PSBoundParameters.ContainsKey($name)) { $body[$name] = Get-Variable $name -ValueOnly }
         }
         if ($PSBoundParameters.ContainsKey('queryText')) { $body.queryCondition = @{ queryText = $queryText } }
-        if ($PSBoundParameters.ContainsKey('frequency')) { $body.schedule = @{ frequency = $frequency } }
+        $schedule = @{}
+        if ($PSBoundParameters.ContainsKey('frequency')) { $schedule.frequency = $frequency }
+        if ($PSBoundParameters.ContainsKey('lookback')) { $schedule.lookback = $lookback }
+        if ($schedule.Count) { $body.schedule = $schedule }
 
+        # Graph keeps any collection a PATCH omits; send an empty one to clear it
         $alertTemplate = @{}
         $alertProperties = @{
             alertTitle = 'title'; alertDescription = 'description'; severity = 'severity'
             entityMappings = 'entityMappings'; tactics = 'tactics'; customDetails = 'customDetails'
-            recommendedActions = 'recommendedActions'
+            recommendedActions = 'recommendedActions'; eventGroupingKind = 'eventGroupingKind'
         }
         foreach ($parameterName in $alertProperties.Keys) {
             if ($PSBoundParameters.ContainsKey($parameterName)) {
@@ -382,6 +408,9 @@ function Update-DetectionRule {
         if ($PSBoundParameters.ContainsKey('automatedActions')) { $detectionAction.automatedActions = $automatedActions }
         if ($PSBoundParameters.ContainsKey('deviceGroups')) {
             $detectionAction.organizationalScope = @{ deviceGroups = @($deviceGroups) }
+        }
+        if ($PSBoundParameters.ContainsKey('isExcludedFromIncidentCorrelation')) {
+            $detectionAction.incidentConfiguration = @{ isExcludedFromIncidentCorrelation = $isExcludedFromIncidentCorrelation }
         }
         if ($detectionAction.Count) { $body.detectionAction = $detectionAction }
     }
